@@ -1,3 +1,7 @@
+
+# Demo app
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://competitive-hotel-price-estimator-ew4yhbjxpuphgybxutpqpm.streamlit.app/)
+
 # Competitive-Hotel-Price-Estimator
 
 This Streamlit app, Competitive Hotel Price Estimator, is designed to help local hotels compare their pricing strategies with competitors and gain insights into demand patterns. The app allows users to upload hotel pricing data and provides interactive analysis, visualizations, and key metrics to improve hotel pricing decisions.
