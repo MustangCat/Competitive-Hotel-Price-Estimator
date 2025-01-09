@@ -59,11 +59,14 @@ The objective of this app is to assist local hotels in understanding their compe
   ![image](https://github.com/user-attachments/assets/5c34cd9f-4e7e-49a7-9ff0-295e6c0f4166)
 
   
-  **Revenue Analysis:** Visualize revenue trends over time to identify peak periods.
-  ![image](https://github.com/user-attachments/assets/97d2bd28-e002-4072-8007-e36a0515a1c2)
+  **Revenue Analysis:** Visualize revenue trends over time to identify peak year weeks.
+  ![image](https://github.com/user-attachments/assets/3b9f9a4a-2c50-42d0-8042-1ba1ac606fb3)
+
 
   **Occupancy Rate Analysis** Visualize occupancy rate by day of the week to optimize high-demand bookings
-  ![image](https://github.com/user-attachments/assets/79f19a9d-8ea4-45a1-971f-996161fa8c75)
+  ![image](https://github.com/user-attachments/assets/b8ec5e8f-6cc1-435e-b098-e086a883c177)
+  ![image](https://github.com/user-attachments/assets/ea171fca-8369-4326-b64d-aa0431a9e60a)
+
 
   
   **Lead Time Distribution:** Understand booking patterns to optimize pricing for last-minute bookings.
