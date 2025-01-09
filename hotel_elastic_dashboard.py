@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 import numpy as np
 from datetime import datetime
 
@@ -29,6 +30,7 @@ if uploaded_file:
         # Read the uploaded file
         df = pd.read_csv(uploaded_file)
         df['Date'] = pd.to_datetime(df['Date'], errors='coerce').dt.date
+        df['Week'] = pd.to_datetime(df['Date']).dt.isocalendar().week
 
         st.markdown("### Data preview")
         st.dataframe(df.head())
@@ -73,7 +75,7 @@ if uploaded_file:
         col3.metric("Avg Occupancy Rate", f"{avg_occupancy:.2f}%")
 
         # Analysis 1: Average price by room type
-        avg_price_by_room = filtered_df.groupby("Room_Type")["Price"].mean().sort_values()
+        avg_price_by_room = filtered_df.groupby("Room_Type")[["Price"]].mean().sort_values(by="Price")
         st.markdown("### Average Price by Room Type")
         st.bar_chart(avg_price_by_room)
 
@@ -87,11 +89,15 @@ if uploaded_file:
         
         # Analysis 3: Occupancy rate visualization
         filtered_df["Occupancy_Rate"] = filtered_df["Occupancy_Rate"].str.rstrip('%').astype(float)
+        filtered_df["Week"] = pd.to_datetime(filtered_df["Date"]).dt.isocalendar().week
         fig, ax = plt.subplots(figsize=(12, 6))
-        filtered_df.plot(x="Date", y="Occupancy_Rate", kind="line", ax=ax, color='blue', alpha=0.7)
-        ax.set_title("Occupancy Rate Over Time", fontsize=14)
-        ax.set_xlabel("Date", fontsize=12)
+        for room_type in filtered_df["Room_Type"].unique():
+            room_df = filtered_df[filtered_df["Room_Type"] == room_type]
+            room_df.groupby("Week")["Occupancy_Rate"].mean().plot(ax=ax, label=room_type)
+        ax.set_title("Occupancy Rate by Week and Room Type", fontsize=14)
+        ax.set_xlabel("Week", fontsize=12)
         ax.set_ylabel("Occupancy Rate (%)", fontsize=12)
+        ax.legend(title="Room Type")
         ax.grid(True)
         st.pyplot(fig)
 
@@ -101,29 +107,26 @@ if uploaded_file:
         st.write(f"The average occupancy rate over the selected period is **{avg_occupancy:.2f}%**.")
         st.write("There are noticeable fluctuations in occupancy rate, which could be influenced by seasonal trends or local events.")
 
-        # Additional Analysis 1: Revenue Analysis
+        # Additional Analysis 1: Revenue Analysis (Heatmap)
         filtered_df['Revenue'] = filtered_df['Price'] * filtered_df['Quantity_Sold']
-        st.markdown("### Revenue Over Time")
+        st.markdown("### Revenue Heatmap by Week")
+        revenue_pivot = filtered_df.pivot_table(values='Revenue', index='Room_Type', columns='Week', aggfunc='sum', fill_value=0)
         fig, ax = plt.subplots(figsize=(12, 6))
-        filtered_df.plot(x="Date", y="Revenue", kind="line", ax=ax, color='green', alpha=0.7)
-        ax.set_title("Revenue Over Time", fontsize=14)
-        ax.set_xlabel("Date", fontsize=12)
-        ax.set_ylabel("Revenue ($)", fontsize=12)
-        ax.grid(True)
+        sns.heatmap(revenue_pivot, cmap="YlGnBu", ax=ax)
+        ax.set_title("Revenue Heatmap by Week", fontsize=14)
+        ax.set_xlabel("Week", fontsize=12)
+        ax.set_ylabel("Room Type", fontsize=12)
         st.pyplot(fig)
         st.write(f"The total revenue over the selected period is **${filtered_df['Revenue'].sum():.2f}**.")
 
-        # Additional Analysis 2: Occupancy Rate by Day of the Week
-        st.markdown("### Occupancy Rate by Day of the Week")
-        avg_occupancy_by_day = filtered_df.groupby("Day_of_Week")["Occupancy_Rate"].mean().reindex([
-            "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
-        ])
-        fig, ax = plt.subplots(figsize=(10, 6))
-        avg_occupancy_by_day.plot(kind='line', marker='o', ax=ax, color='orange', alpha=0.8)
-        ax.set_title("Average Occupancy Rate by Day of the Week", fontsize=14)
+        # Additional Analysis 2: Occupancy Rate Heatmap by Day of the Week
+        st.markdown("### Occupancy Rate Heatmap by Day of the Week")
+        occupancy_pivot = filtered_df.pivot_table(values='Occupancy_Rate', index='Room_Type', columns='Day_of_Week', aggfunc='mean', fill_value=0)
+        fig, ax = plt.subplots(figsize=(12, 6))
+        sns.heatmap(occupancy_pivot, cmap="YlOrRd", ax=ax)
+        ax.set_title("Occupancy Rate Heatmap by Day of the Week", fontsize=14)
         ax.set_xlabel("Day of the Week", fontsize=12)
-        ax.set_ylabel("Occupancy Rate (%)", fontsize=12)
-        ax.grid(True)
+        ax.set_ylabel("Room Type", fontsize=12)
         st.pyplot(fig)
 
         # Additional Analysis 3: Lead Time Analysis
@@ -139,7 +142,7 @@ if uploaded_file:
 
         # Additional Analysis 4: Promotion Effectiveness
         st.markdown("### Promotion Effectiveness")
-        avg_revenue_by_promotion = filtered_df.groupby("Promotion")["Revenue"].mean().sort_values()
+        avg_revenue_by_promotion = filtered_df.groupby("Promotion")[["Revenue"]].mean().sort_values(by="Revenue")
         st.bar_chart(avg_revenue_by_promotion)
         st.write("This analysis shows the average revenue generated by different types of promotions.")
 
@@ -196,7 +199,7 @@ if uploaded_file:
                 st.write("The demand is **unit elastic**: proportional change in quantity to price.")
 
             # Visualization of demand curve
-            fig,ax = plt.subplots()
+            fig, ax = plt.subplots()
             prices = np.linspace(initial_price, new_price, 100)
             quantities = initial_quantity * (1 + elasticity * ((prices - initial_price) / initial_price))
             ax.plot(prices, quantities, label="Demand Curve")
