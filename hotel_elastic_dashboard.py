@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+from datetime import datetime
 
 st.title("Competitive Hotel Price Estimator")
 st.markdown("""
@@ -27,17 +28,49 @@ if uploaded_file:
     try:
         # Read the uploaded file
         df = pd.read_csv(uploaded_file)
+        df['Date'] = pd.to_datetime(df['Date'], errors='coerce').dt.date
 
         st.markdown("### Data preview")
         st.dataframe(df.head())
 
+        # Date range slider
+        st.markdown("### Filter by Date Range")
+        min_date = pd.to_datetime(df['Date']).min().date()
+        max_date = pd.to_datetime(df['Date']).max().date()
+        start_date, end_date = st.slider(
+            "Select Date Range",
+            min_value=min_date,
+            max_value=max_date,
+            value=(min_date, max_date),
+            format="YYYY-MM-DD"
+        )
+        df = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)]
+
         # Segment filter by Room_Type
         st.markdown("### Filter by Room Type")
         room_types = df["Room_Type"].unique()
-        selected_room_types = st.multiselect("Select Room Types", options=room_types, default=room_types)
+        selected_room_types = st.multiselect("Select Room Types", options=room_types, default=room_types, key='room_type_filter')
 
         # Filter the dataframe based on selected room types
         filtered_df = df[df["Room_Type"].isin(selected_room_types)]
+
+        # KPI Cards
+        st.markdown("### Key Performance Indicators")
+        col1, col2, col3 = st.columns(3)
+        total_revenue = filtered_df['Price'].sum()
+        total_quantity = filtered_df['Quantity_Sold'].sum()
+        avg_occupancy = filtered_df['Occupancy_Rate'].str.rstrip('%').astype(float).mean()
+
+        prev_start_date = start_date - (end_date - start_date)
+        prev_end_date = start_date
+        prev_df = filtered_df[(filtered_df['Date'] >= prev_start_date) & (filtered_df['Date'] < prev_end_date)]
+        prev_revenue = prev_df['Price'].sum() if not prev_df.empty else 0
+        prev_quantity = prev_df['Quantity_Sold'].sum() if not prev_df.empty else 0
+        prev_avg_occupancy = prev_df['Occupancy_Rate'].str.rstrip('%').astype(float).mean() if not prev_df.empty else 0
+
+        col1.metric("Total Revenue", f"${total_revenue:,.2f}")
+        col2.metric("Quantity Sold", f"{total_quantity}")
+        col3.metric("Avg Occupancy Rate", f"{avg_occupancy:.2f}%")
 
         # Analysis 1: Average price by room type
         avg_price_by_room = filtered_df.groupby("Room_Type")["Price"].mean().sort_values()
@@ -82,8 +115,16 @@ if uploaded_file:
 
         # Additional Analysis 2: Occupancy Rate by Day of the Week
         st.markdown("### Occupancy Rate by Day of the Week")
-        avg_occupancy_by_day = filtered_df.groupby("Day_of_Week")["Occupancy_Rate"].mean().sort_values()
-        st.bar_chart(avg_occupancy_by_day)
+        avg_occupancy_by_day = filtered_df.groupby("Day_of_Week")["Occupancy_Rate"].mean().reindex([
+            "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
+        ])
+        fig, ax = plt.subplots(figsize=(10, 6))
+        avg_occupancy_by_day.plot(kind='line', marker='o', ax=ax, color='orange', alpha=0.8)
+        ax.set_title("Average Occupancy Rate by Day of the Week", fontsize=14)
+        ax.set_xlabel("Day of the Week", fontsize=12)
+        ax.set_ylabel("Occupancy Rate (%)", fontsize=12)
+        ax.grid(True)
+        st.pyplot(fig)
 
         # Additional Analysis 3: Lead Time Analysis
         st.markdown("### Lead Time Analysis")
@@ -107,8 +148,8 @@ if uploaded_file:
         fig, ax = plt.subplots(figsize=(8, 6))
         ax.scatter(filtered_df["Price"], filtered_df["Competitor_Price"], alpha=0.7)
         ax.set_title("Price vs. Competitor Price Correlation", fontsize=14)
-        ax.set_xlabel("Hotel Price ($)", fontsize=12)
-        ax.set_ylabel("Competitor Price ($)", fontsize=12)
+        ax.set_xlabel("Hotel Price ($)")
+        ax.set_ylabel("Competitor Price ($)")
         ax.grid(True)
         st.pyplot(fig)
 
@@ -155,7 +196,7 @@ if uploaded_file:
                 st.write("The demand is **unit elastic**: proportional change in quantity to price.")
 
             # Visualization of demand curve
-            fig, ax = plt.subplots()
+            fig,ax = plt.subplots()
             prices = np.linspace(initial_price, new_price, 100)
             quantities = initial_quantity * (1 + elasticity * ((prices - initial_price) / initial_price))
             ax.plot(prices, quantities, label="Demand Curve")
